@@ -1,5 +1,5 @@
 # go-execute-ssh
-Executing ssh commands on remote hosts
+Executing commands on remote hosts via ssh
 
 # Example
 ```package main
