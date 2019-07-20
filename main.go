@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"./executessh"
+	"github.com/thevan4/go-execute-ssh/executessh"
 )
 
 func main() {
