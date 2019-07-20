@@ -1,5 +1,4 @@
-[![Go Report Card](https://goreportcard.com/badge/github.com/thevan4/go-execute-ssh)](https://goreportcard.com/report/github.com/thevan4/go-execute-ssh)
-# go-execute-ssh
+# go-execute-ssh [![Go Report Card](https://goreportcard.com/badge/github.com/thevan4/go-execute-ssh)](https://goreportcard.com/report/github.com/thevan4/go-execute-ssh)
 Executing commands on remote hosts via ssh
 
 # Example
