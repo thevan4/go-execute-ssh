@@ -107,7 +107,7 @@ func readExpectedBuff(whattoexpect, whattoskip string, sshOut io.Reader, timeout
 	defer close(ch)
 	defer close(errCh)
 	go func(whattoexpect string, sshOut io.Reader) {
-		buffRead := make(chan string)
+		buffRead := make(chan string, 1)
 		go readBuffForExpectedString(whattoexpect, whattoskip, sshOut, buffRead, maxBufferBytes)
 		select {
 		case ret := <-buffRead:
