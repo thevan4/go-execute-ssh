@@ -43,7 +43,7 @@ const (
 )
 
 // SendCommands ...
-func (conn *Connection) SendCommands(shellPrompt string, timeoutSeconds int, commands ...string) ([]string, error) {
+func (conn *Connection) SendCommands(shellPrompt string, timeoutSeconds int, maxBufferBytes uint, commands ...string) ([]string, error) {
 	session, err := conn.NewSession()
 	if err != nil {
 		return nil, err
@@ -74,7 +74,7 @@ func (conn *Connection) SendCommands(shellPrompt string, timeoutSeconds int, com
 		return nil, fmt.Errorf("request for shell failed: %v", err)
 	}
 
-	_, err = readExpectedBuff(shellPrompt, "", sshOut, 2) // reset everything to start shellPrompt
+	_, err = readExpectedBuff(shellPrompt, "", sshOut, timeoutSeconds, maxBufferBytes) // reset everything to start shellPrompt
 	if err != nil {
 		return nil, err
 	}
@@ -86,13 +86,13 @@ func (conn *Connection) SendCommands(shellPrompt string, timeoutSeconds int, com
 			return nil, fmt.Errorf("failed to run: %s", err)
 		}
 
-		oneResult, err := readExpectedBuff("\r", command+"\r"+"\r"+"\n", sshOut, 2)
+		oneResult, err := readExpectedBuff("\r", command+"\r"+"\r"+"\n", sshOut, timeoutSeconds, maxBufferBytes)
 		if err != nil {
 			return nil, fmt.Errorf("can't read expected buffer `\r`: %v", err)
 		}
 
 		results = append(results, strings.TrimSpace(oneResult))
-		_, err = readExpectedBuff(shellPrompt, "", sshOut, 2) // reset everything to start shellPrompt
+		_, err = readExpectedBuff(shellPrompt, "", sshOut, timeoutSeconds, maxBufferBytes) // reset everything to start shellPrompt
 		if err != nil {
 			return nil, err
 		}
@@ -101,14 +101,14 @@ func (conn *Connection) SendCommands(shellPrompt string, timeoutSeconds int, com
 	return results, nil
 }
 
-func readExpectedBuff(whattoexpect, whattoskip string, sshOut io.Reader, timeoutSeconds int) (string, error) {
+func readExpectedBuff(whattoexpect, whattoskip string, sshOut io.Reader, timeoutSeconds int, maxBufferBytes uint) (string, error) {
 	ch := make(chan string, 1)
 	errCh := make(chan error, 1)
 	defer close(ch)
 	defer close(errCh)
 	go func(whattoexpect string, sshOut io.Reader) {
 		buffRead := make(chan string)
-		go readBuffForExpectedString(whattoexpect, whattoskip, sshOut, buffRead)
+		go readBuffForExpectedString(whattoexpect, whattoskip, sshOut, buffRead, maxBufferBytes)
 		select {
 		case ret := <-buffRead:
 			ch <- ret
@@ -125,8 +125,8 @@ func readExpectedBuff(whattoexpect, whattoskip string, sshOut io.Reader, timeout
 	}
 }
 
-func readBuffForExpectedString(whattoexpect, whattoskip string, sshOut io.Reader, buffRead chan<- string) {
-	buf := make([]byte, 1000)
+func readBuffForExpectedString(whattoexpect, whattoskip string, sshOut io.Reader, buffRead chan<- string, maxBufferBytes uint) {
+	buf := make([]byte, maxBufferBytes)
 	n, err := sshOut.Read(buf) //this reads the ssh terminal
 	waitingString := ""
 	if err == nil {
