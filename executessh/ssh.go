@@ -81,7 +81,7 @@ func (conn *Connection) SendCommands(shellPrompt string, timeoutSeconds int, com
 
 	results := []string{}
 	for _, command := range commands {
-		_, err = writeBuff(command, sshIn) // run command. simple sending buffer to sshIn
+		err = writeBuff(command, sshIn) // run command. simple sending buffer to sshIn
 		if err != nil {
 			return nil, fmt.Errorf("failed to run: %s", err)
 		}
@@ -148,7 +148,7 @@ takeBuffer:
 	buffRead <- waitingString
 }
 
-func writeBuff(command string, sshIn io.WriteCloser) (int, error) {
-	returnCode, err := sshIn.Write([]byte(command + "\r"))
-	return returnCode, err
+func writeBuff(command string, sshIn io.WriteCloser) error {
+	_, err := sshIn.Write([]byte(command + "\r"))
+	return err
 }
