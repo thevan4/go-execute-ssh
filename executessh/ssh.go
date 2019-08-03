@@ -86,12 +86,12 @@ func (conn *Connection) SendCommands(shellPrompt string, timeoutSeconds time.Dur
 			return nil, fmt.Errorf("failed to run: %s", err)
 		}
 
-		oneResult, err := readExpectedBuff("\r", command+"\r"+"\r"+"\n", sshOut, timeoutSeconds, maxBufferBytes)
+		currentResult, err := readExpectedBuff("\r", command+"\r"+"\r"+"\n", sshOut, timeoutSeconds, maxBufferBytes)
 		if err != nil {
 			return nil, fmt.Errorf("can't read expected buffer `\r`: %v", err)
 		}
 
-		results = append(results, strings.TrimSpace(oneResult))
+		results = append(results, strings.TrimSpace(currentResult))
 		_, err = readExpectedBuff(shellPrompt, "", sshOut, timeoutSeconds, maxBufferBytes) // reset everything to start shellPrompt
 		if err != nil {
 			return nil, err
