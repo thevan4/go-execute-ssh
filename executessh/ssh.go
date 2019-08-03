@@ -43,7 +43,7 @@ const (
 )
 
 // SendCommands ...
-func (conn *Connection) SendCommands(shellPrompt string, timeoutSeconds int, maxBufferBytes uint, commands ...string) ([]string, error) {
+func (conn *Connection) SendCommands(shellPrompt string, timeoutSeconds time.Duration, maxBufferBytes uint, commands ...string) ([]string, error) {
 	session, err := conn.NewSession()
 	if err != nil {
 		return nil, err
@@ -101,7 +101,7 @@ func (conn *Connection) SendCommands(shellPrompt string, timeoutSeconds int, max
 	return results, nil
 }
 
-func readExpectedBuff(whattoexpect, whattoskip string, sshOut io.Reader, timeoutSeconds int, maxBufferBytes uint) (string, error) {
+func readExpectedBuff(whattoexpect, whattoskip string, sshOut io.Reader, timeoutSeconds time.Duration, maxBufferBytes uint) (string, error) {
 	ch := make(chan string, 1)
 	errCh := make(chan error, 1)
 	defer close(ch)
@@ -112,7 +112,7 @@ func readExpectedBuff(whattoexpect, whattoskip string, sshOut io.Reader, timeout
 		select {
 		case ret := <-buffRead:
 			ch <- ret
-		case <-time.After(time.Duration(timeoutSeconds) * time.Second):
+		case <-time.After(timeoutSeconds):
 			errCh <- fmt.Errorf("waiting for execute command took longer than %v seconds", timeoutSeconds)
 		}
 	}(whattoexpect, sshOut)
