@@ -1,6 +1,7 @@
 package executessh
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -23,7 +24,7 @@ func Connect(addr, user, password string) (*Connection, error) {
 		Auth: []ssh.AuthMethod{
 			ssh.Password(password),
 		},
-		HostKeyCallback: ssh.HostKeyCallback(func(hostname string, remote net.Addr, key ssh.PublicKey) error { return nil }),
+		HostKeyCallback: ssh.HostKeyCallback(func(hostname string, remote net.Addr, key ssh.PublicKey) error { return nil }), // TODO: make customization possible
 	}
 
 	conn, err := ssh.Dial("tcp", addr, sshConfig)
@@ -101,51 +102,52 @@ func (conn *Connection) SendCommands(shellPrompt string, timeoutSeconds time.Dur
 	return results, nil
 }
 
-func readExpectedBuff(whattoexpect, whattoskip string, sshOut io.Reader, timeoutSeconds time.Duration, maxBufferBytes uint) (string, error) {
-	ch := make(chan string, 1)
-	errCh := make(chan error, 1)
-	defer close(ch)
-	defer close(errCh)
-	go func(whattoexpect string, sshOut io.Reader) {
-		buffRead := make(chan string, 1)
-		go readBuffForExpectedString(whattoexpect, whattoskip, sshOut, buffRead, maxBufferBytes)
-		select {
-		case ret := <-buffRead:
-			ch <- ret
-		case <-time.After(timeoutSeconds):
-			errCh <- fmt.Errorf("waiting for execute command took longer than %v seconds", timeoutSeconds)
-		}
-	}(whattoexpect, sshOut)
+func readExpectedBuff(whatDoExpect, whatToSkip string, sshOut io.Reader, timeoutSeconds time.Duration, maxBufferBytes uint) (string, error) {
+	resultChan := make(chan string, 1)
+	defer close(resultChan)
+	ctx, cancel := context.WithTimeout(context.Background(), timeoutSeconds)
+	defer cancel()
+	errorChan := make(chan error, 1)
+	defer close(errorChan)
+
+	go readBuffForExpectedString(whatDoExpect, whatToSkip, sshOut, resultChan, errorChan, maxBufferBytes)
 
 	select {
-	case result := <-ch:
+	case result := <-resultChan:
 		return result, nil
-	case err := <-errCh:
+	case err := <-errorChan:
 		return "", err
+	case <-ctx.Done():
+		return "", fmt.Errorf("waiting for execute command took longer than %v seconds", timeoutSeconds)
 	}
 }
 
-func readBuffForExpectedString(whattoexpect, whattoskip string, sshOut io.Reader, buffRead chan<- string, maxBufferBytes uint) {
+func readBuffForExpectedString(whatDoExpect, whatToSkip string, sshOut io.Reader, resultChan chan<- string, errorChan chan error, maxBufferBytes uint) {
 	buf := make([]byte, maxBufferBytes)
 	n, err := sshOut.Read(buf) //this reads the ssh terminal
 	waitingString := ""
-	if err == nil {
-		waitingString = string(buf[:n])
+	if err != nil {
+		errorChan <- err
+		return
 	}
+	waitingString = string(buf[:n])
 
 takeBuffer:
-	for (err == nil) && (!strings.Contains(waitingString, whattoexpect)) {
+	for (err == nil) && (!strings.Contains(waitingString, whatDoExpect)) {
 		n, err = sshOut.Read(buf)
 		waitingString += string(buf[:n])
 		//fmt.Println(waitingString) // for debug
-
+		if err != nil {
+			errorChan <- err
+			return
+		}
 	}
-	if waitingString == whattoskip { // if read console equal run command - skip it
+	if waitingString == whatToSkip { // if read console equal run command - skip it
 		waitingString = ""
 		goto takeBuffer
 	}
 
-	buffRead <- waitingString
+	resultChan <- waitingString
 }
 
 func writeBuff(command string, sshIn io.WriteCloser) error {
