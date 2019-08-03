@@ -24,7 +24,11 @@ func Connect(addr, user, password string) (*Connection, error) {
 		Auth: []ssh.AuthMethod{
 			ssh.Password(password),
 		},
-		HostKeyCallback: ssh.HostKeyCallback(func(hostname string, remote net.Addr, key ssh.PublicKey) error { return nil }), // TODO: make customization possible
+		HostKeyCallback: ssh.HostKeyCallback(func(hostname string,
+			remote net.Addr,
+			key ssh.PublicKey) error {
+			return nil
+		}), // TODO: make customization possible
 	}
 
 	conn, err := ssh.Dial("tcp", addr, sshConfig)
@@ -44,7 +48,11 @@ const (
 )
 
 // SendCommands ...
-func (conn *Connection) SendCommands(shellPrompt string, timeoutSeconds time.Duration, maxBufferBytes uint, commands ...string) ([]string, error) {
+func (conn *Connection) SendCommands(shellPrompt string,
+	timeoutSeconds time.Duration,
+	maxBufferBytes uint,
+	commands ...string) (map[string]string, error) {
+
 	session, err := conn.NewSession()
 	if err != nil {
 		return nil, err
@@ -80,7 +88,7 @@ func (conn *Connection) SendCommands(shellPrompt string, timeoutSeconds time.Dur
 		return nil, err
 	}
 
-	results := []string{}
+	commandsAndResults := make(map[string]string)
 	for _, command := range commands {
 		err = writeBuff(command, sshIn) // run command. simple sending buffer to sshIn
 		if err != nil {
@@ -92,14 +100,14 @@ func (conn *Connection) SendCommands(shellPrompt string, timeoutSeconds time.Dur
 			return nil, fmt.Errorf("can't read expected buffer `\r`: %v", err)
 		}
 
-		results = append(results, strings.TrimSpace(currentResult))
+		commandsAndResults[command] = strings.TrimSpace(currentResult)
 		_, err = readExpectedBuff(shellPrompt, "", sshOut, timeoutSeconds, maxBufferBytes) // reset everything to start shellPrompt
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return results, nil
+	return commandsAndResults, nil
 }
 
 func readExpectedBuff(whatDoExpect, whatToSkip string, sshOut io.Reader, timeoutSeconds time.Duration, maxBufferBytes uint) (string, error) {
