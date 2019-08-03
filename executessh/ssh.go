@@ -123,28 +123,28 @@ func readExpectedBuff(whatDoExpect, whatToSkip string, sshOut io.Reader, timeout
 }
 
 func readBuffForExpectedString(whatDoExpect, whatToSkip string, sshOut io.Reader, resultChan chan<- string, errorChan chan error, maxBufferBytes uint) {
+	var waitingString string
+	var n int
+	var err error
+	var checkWhatToSkip = true
 	buf := make([]byte, maxBufferBytes)
-	n, err := sshOut.Read(buf) //this reads the ssh terminal
-	waitingString := ""
-	if err != nil {
-		errorChan <- err
-		return
-	}
-	waitingString = string(buf[:n])
 
 takeBuffer:
-	for (err == nil) && (!strings.Contains(waitingString, whatDoExpect)) {
-		n, err = sshOut.Read(buf)
-		waitingString += string(buf[:n])
-		//fmt.Println(waitingString) // for debug
+	for !strings.Contains(waitingString, whatDoExpect) {
+		n, err = sshOut.Read(buf) //this reads the ssh terminal
 		if err != nil {
 			errorChan <- err
 			return
 		}
+		waitingString += string(buf[:n])
 	}
-	if waitingString == whatToSkip { // if read console equal run command - skip it
-		waitingString = ""
-		goto takeBuffer
+
+	if checkWhatToSkip { // if run command already droped - do not compare string again
+		if waitingString == whatToSkip { // if read console equal run command - skip it
+			waitingString = ""
+			checkWhatToSkip = false
+			goto takeBuffer
+		}
 	}
 
 	resultChan <- waitingString
