@@ -11,7 +11,21 @@ To start, you must specify:
 
 3. Commands - **[]string**
 
-Execute result: **map[string]string** (key - command, value - result) and **error**
+Execute result is struct:
+
+```golang
+type CommandAndResult struct {
+    Command, Result string
+}
+```
+
+And **error**
+
+## Why execute result not map or array
+
+Not a map, as in some cases the order of execution is important.
+
+Not an array, since in some cases we don’t need all the results (sometimes the sequence of commands is important, but not their output).
 
 ## Example
 
@@ -31,7 +45,7 @@ func main() {
     user := "admin4eg"
     password := "pass"
     shellPrompt := "#" //or $ for example
-    timeoutSeconds := time.Duration(2 * time.Second)
+    timeoutForExecuteCommand := time.Duration(2 * time.Second)
     commands := []string{"show hostname", "show interface mgmt 0 | json"}
     var maxBufferBytes uint = 1000
 
@@ -40,7 +54,7 @@ func main() {
         log.Fatal(err)
     }
 
-    output, err := connection.SendCommands(shellPrompt, timeoutSeconds, maxBufferBytes, commands...)
+    output, err := connection.SendCommands(shellPrompt, timeoutForExecuteCommand, maxBufferBytes, commands...)
     if err != nil {
         log.Fatal(err)
     }
