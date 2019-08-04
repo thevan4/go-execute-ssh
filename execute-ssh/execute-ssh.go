@@ -11,6 +11,11 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+// CommandAndResult ...
+type CommandAndResult struct {
+	Command, Result string
+}
+
 // Connection ...
 type Connection struct { // FIXME: why struct? where close connect?
 	*ssh.Client
@@ -50,7 +55,7 @@ const (
 func (conn *Connection) SendCommands(shellPrompt string,
 	timeoutSeconds time.Duration,
 	maxBufferBytes uint,
-	commands ...string) (map[string]string, error) {
+	commands ...string) ([]CommandAndResult, error) {
 
 	session, err := conn.NewSession()
 	if err != nil {
@@ -87,7 +92,7 @@ func (conn *Connection) SendCommands(shellPrompt string,
 		return nil, err
 	}
 
-	commandsAndResults := make(map[string]string)
+	var finalResult []CommandAndResult
 	for _, command := range commands {
 		err = writeBuff(command, sshIn) // run command. simple sending buffer to sshIn
 		if err != nil {
@@ -99,14 +104,19 @@ func (conn *Connection) SendCommands(shellPrompt string,
 			return nil, fmt.Errorf("can't read expected buffer `\r`: %v", err)
 		}
 
-		commandsAndResults[command] = strings.TrimSpace(currentResult)
 		_, err = readExpectedBuff(shellPrompt, "", sshOut, timeoutSeconds, maxBufferBytes) // reset everything to start shellPrompt
 		if err != nil {
 			return nil, err
 		}
+
+		result := CommandAndResult{
+			Command: command,
+			Result:  strings.TrimSpace(currentResult),
+		}
+		finalResult = append(finalResult, result)
 	}
 
-	return commandsAndResults, nil
+	return finalResult, nil
 }
 
 func readExpectedBuff(whatDoExpect, whatToSkip string, sshOut io.Reader, timeoutSeconds time.Duration, maxBufferBytes uint) (string, error) {
