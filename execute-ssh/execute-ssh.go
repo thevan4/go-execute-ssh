@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net"
 	"strings"
 	"time"
 
@@ -16,34 +15,6 @@ type CommandAndResult struct {
 	Command, Result string
 }
 
-// Connection ...
-type Connection struct { // FIXME: why struct? where close connect?
-	*ssh.Client
-	password string
-}
-
-// Connect ...
-func Connect(addr, user, password string) (*Connection, error) {
-	sshConfig := &ssh.ClientConfig{
-		User: user,
-		Auth: []ssh.AuthMethod{
-			ssh.Password(password),
-		},
-		HostKeyCallback: ssh.HostKeyCallback(func(hostname string,
-			remote net.Addr,
-			key ssh.PublicKey) error {
-			return nil
-		}), // TODO: make customization possible
-	}
-
-	conn, err := ssh.Dial("tcp", addr, sshConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Connection{conn, password}, nil
-}
-
 // Еhis hardcode should be. 500000 - is the width and height of the pseudo terminal
 // In general, this is not important, since we only read real data
 const (
@@ -52,12 +23,12 @@ const (
 )
 
 // SendCommands ...
-func (conn *Connection) SendCommands(shellPrompt string,
+func SendCommands(sshClient *ssh.Client, shellPrompt string,
 	timeoutSeconds time.Duration,
 	maxBufferBytes uint,
 	commands ...string) ([]CommandAndResult, error) {
 
-	session, err := conn.NewSession()
+	session, err := sshClient.NewSession()
 	if err != nil {
 		return nil, err
 	}
