@@ -12,7 +12,7 @@ import (
 )
 
 // Connection ...
-type Connection struct {
+type Connection struct { // FIXME: why struct? where close connect?
 	*ssh.Client
 	password string
 }
@@ -37,7 +37,6 @@ func Connect(addr, user, password string) (*Connection, error) {
 	}
 
 	return &Connection{conn, password}, nil
-
 }
 
 // Еhis hardcode should be. 500000 - is the width and height of the pseudo terminal
