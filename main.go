@@ -41,11 +41,10 @@ func main() {
 		logging.WithFields(logrus.Fields{
 			"command": commandAndResult.Command,
 			"result":  commandAndResult.Result,
-		}).Infof("execute number %v", num)
+		}).Infof("execute number %v", num+1)
 	}
 }
 
-// newSSHClient ...
 func newSSHClient(addr, user, password string) (*ssh.Client, error) {
 	sshConfig := &ssh.ClientConfig{
 		User: user,
