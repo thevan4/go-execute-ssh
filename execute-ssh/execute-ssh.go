@@ -72,6 +72,7 @@ func SendCommands(sshClient *ssh.Client, shellPrompt string,
 	if err != nil {
 		return nil, err
 	}
+
 	trueShellPrompt = strings.TrimSpace(trueShellPrompt)
 
 	var finalResult []CommandAndResult
@@ -94,7 +95,6 @@ func SendCommands(sshClient *ssh.Client, shellPrompt string,
 		}
 		finalResult = append(finalResult, result)
 	}
-
 	return finalResult, nil
 }
 
