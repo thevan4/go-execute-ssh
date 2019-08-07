@@ -1,6 +1,6 @@
-# go-execute-ssh
+# go-execute-ssh [![MIT license](https://img.shields.io/badge/license-MIT-brightgreen.svg)](https://opensource.org/licenses/MIT)
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/thevan4/go-execute-ssh)](https://goreportcard.com/report/github.com/thevan4/go-execute-ssh) [![MIT license](https://img.shields.io/badge/license-MIT-brightgreen.svg)](https://opensource.org/licenses/MIT)
+
 Executing commands on remote hosts via ssh.
 
 To start, you must specify:
