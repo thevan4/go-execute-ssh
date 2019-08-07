@@ -1,6 +1,5 @@
-# go-execute-ssh
+# go-execute-ssh [![Go Report Card](https://goreportcard.com/badge/github.com/thevan4/go-execute-ssh)](https://goreportcard.com/report/github.com/thevan4/go-execute-ssh) [![MIT license](https://img.shields.io/badge/license-MIT-brightgreen.svg)](https://opensource.org/licenses/MIT) [![CircleCI](https://circleci.com/gh/thevan4/go-execute-ssh.svg?style=svg)](https://circleci.com/gh/thevan4/go-execute-ssh)
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/thevan4/go-execute-ssh)](https://goreportcard.com/report/github.com/thevan4/go-execute-ssh) [![MIT license](https://img.shields.io/badge/license-MIT-brightgreen.svg)](https://opensource.org/licenses/MIT) [![CircleCI](https://circleci.com/gh/thevan4/go-execute-ssh.svg?style=svg)](https://circleci.com/gh/thevan4/go-execute-ssh)
 Executing commands on remote hosts via ssh.
 
 To start, you must specify:
@@ -30,7 +29,15 @@ Not an array, since in some cases we don’t need all the results (sometimes the
 ## Usage
 
 **WARNING! Demo run insecure!**
-Build binary and run it with flags. Example run:
+Build binary and run it with flags.
+
+Short example:
+
+```bash
+go run main -host 1.1.1.1:22 -user admin1 -password pass -shellPrompt '$' -execute-timeout 10s -commands 'ls,cat 123.txt' -max-buffer-bytes 2000
+```
+
+Full example:
 
 ```bash
 go run main -log-output syslog -log-level info -log-format default -syslog-tag sometag -host 1.1.1.1:22 -user admin1 -password pass -shellPrompt '$' -execute-timeout 10s -commands 'ls,cat 123.txt' -max-buffer-bytes 2000
