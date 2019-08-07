@@ -63,6 +63,18 @@ func SendCommands(sshClient *ssh.Client, shellPrompt string,
 		return nil, err
 	}
 
+	err = writeBuff("", sshIn) // renew full shell prompt
+	if err != nil {
+		return nil, fmt.Errorf("failed to run: %s", err)
+	}
+
+	trueShellPrompt, err := readExpectedBuff(shellPrompt, "", sshOut, timeoutSeconds, maxBufferBytes) // read 'true' shellPrompt
+	if err != nil {
+		return nil, err
+	}
+
+	trueShellPrompt = strings.TrimSpace(trueShellPrompt)
+
 	var finalResult []CommandAndResult
 	for _, command := range commands {
 		err = writeBuff(command, sshIn) // run command. simple sending buffer to sshIn
@@ -70,15 +82,12 @@ func SendCommands(sshClient *ssh.Client, shellPrompt string,
 			return nil, fmt.Errorf("failed to run: %s", err)
 		}
 
-		currentResult, err := readExpectedBuff("\r", command+"\r"+"\r"+"\n", sshOut, timeoutSeconds, maxBufferBytes)
+		rawCurrentResult, err := readExpectedBuff(shellPrompt, command, sshOut, timeoutSeconds, maxBufferBytes)
 		if err != nil {
 			return nil, fmt.Errorf("can't read expected buffer `\r`: %v", err)
 		}
 
-		_, err = readExpectedBuff(shellPrompt, "", sshOut, timeoutSeconds, maxBufferBytes) // reset everything to start shellPrompt
-		if err != nil {
-			return nil, err
-		}
+		currentResult := (strings.Split((strings.Split(rawCurrentResult, trueShellPrompt))[0], trueShellPrompt))[0]
 
 		result := CommandAndResult{
 			Command: command,
@@ -86,7 +95,6 @@ func SendCommands(sshClient *ssh.Client, shellPrompt string,
 		}
 		finalResult = append(finalResult, result)
 	}
-
 	return finalResult, nil
 }
 
@@ -128,8 +136,8 @@ takeBuffer:
 	}
 
 	if checkWhatToSkip { // if run command already droped - do not compare string again
-		if waitingString == whatToSkip { // if read console equal run command - skip it
-			waitingString = ""
+		if strings.Contains(waitingString, whatToSkip) { // if read console equal run command - drop command
+			waitingString = strings.Trim(waitingString, whatToSkip)
 			checkWhatToSkip = false
 			goto takeBuffer
 		}
